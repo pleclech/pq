@@ -131,10 +131,16 @@ func textDecode(parameterStatus *parameterStatus, s []byte, typ oid.Oid) interfa
 	return s
 }
 
+type ByteEncoder interface {
+	Encode(buf []byte) []byte
+}
+
 // appendEncodedText encodes item in text format as required by COPY
 // and appends to buf
 func appendEncodedText(parameterStatus *parameterStatus, buf []byte, x interface{}) []byte {
 	switch v := x.(type) {
+	case ByteEncoder:
+		return v.Encode(buf)
 	case int64:
 		return strconv.AppendInt(buf, v, 10)
 	case float64:
