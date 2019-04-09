@@ -1518,19 +1518,32 @@ func (cn *conn) sendBinaryModeQuery(query string, args []driver.Value) {
 	cn.send(b)
 }
 
+func unsafeParseInt(v string) (ret int64) {
+	ret, _ = strconv.ParseInt(v, 10, 64)
+	return
+}
+
+func ParseServerVersion(v string) (ret int64) {
+	tmp := strings.Split(v, ".")
+	switch len(tmp) {
+	case 3:
+		ret = unsafeParseInt(tmp[0]) * 10000 + unsafeParseInt(tmp[1]) * 100 + unsafeParseInt(tmp[2])
+	case 2:
+		ret = unsafeParseInt(tmp[0]) * 10000 + unsafeParseInt(tmp[1])
+	case 1:
+		ret = unsafeParseInt(tmp[0]) * 10000
+	}
+	return
+}
+
 func (cn *conn) processParameterStatus(r *readBuf) {
 	var err error
 
 	param := r.string()
 	switch param {
 	case "server_version":
-		var major1 int
-		var major2 int
-		var minor int
-		_, err = fmt.Sscanf(r.string(), "%d.%d.%d", &major1, &major2, &minor)
-		if err == nil {
-			cn.parameterStatus.serverVersion = major1*10000 + major2*100 + minor
-		}
+		version := ParseServerVersion(r.string())
+		cn.parameterStatus.serverVersion = int(version)
 
 	case "TimeZone":
 		cn.parameterStatus.currentLocation, err = time.LoadLocation(r.string())
